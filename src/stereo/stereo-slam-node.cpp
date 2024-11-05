@@ -93,13 +93,13 @@ void StereoSlamNode::GrabStereo(const ImageMsg::SharedPtr msgLeft, const ImageMs
     sendmsg.header.frame_id = "map";
     sendmsg.child_frame_id = "orbslam3";
 
-    sendmsg.transform.translation.x = SE3.params()(4);
-    sendmsg.transform.translation.y = SE3.params()(5);
-    sendmsg.transform.translation.z = SE3.params()(6);
+    sendmsg.transform.translation.x = -SE3.params()(4);
+    sendmsg.transform.translation.y = -SE3.params()(6);
+    sendmsg.transform.translation.z = SE3.params()(5);
 
-    sendmsg.transform.rotation.x = SE3.params()(0);
-    sendmsg.transform.rotation.y = SE3.params()(1);
-    sendmsg.transform.rotation.z = SE3.params()(2);
+    sendmsg.transform.rotation.x = -SE3.params()(0);
+    sendmsg.transform.rotation.y = SE3.params()(2);
+    sendmsg.transform.rotation.z = SE3.params()(1);
     sendmsg.transform.rotation.w = SE3.params()(3);
 
     tf_publisher->publish(sendmsg);
