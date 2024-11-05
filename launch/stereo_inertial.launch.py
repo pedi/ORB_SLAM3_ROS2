@@ -9,7 +9,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'vocabulary',
             default_value=PathJoinSubstitution([
-                FindPackageShare('orbslam3'),
+                FindPackageShare('orbslam3_ros2'),
                 'vocabulary',  # Assuming your vocab file is in the vocabulary directory
                 'ORBvoc.txt'   # Replace with your actual vocabulary file name
             ]),
@@ -22,14 +22,14 @@ def generate_launch_description():
         ),
         
         Node(
-            package='orbslam3',
+            package='orbslam3_ros2',
             executable='stereo-inertial',
             name='stereo_inertial_orbslam3',
             output='screen',
             arguments=[
                 LaunchConfiguration('vocabulary'),
                 PathJoinSubstitution([
-                    FindPackageShare('orbslam3'),
+                    FindPackageShare('orbslam3_ros2'),
                     'config',  
                     'stereo',
                     LaunchConfiguration('yaml_file')
