@@ -4,9 +4,16 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 
+#include "sensor_msgs/msg/point_cloud2.hpp"
+#include "sensor_msgs/msg/point_field.hpp"
+
+#include "geometry_msgs/msg/transform_stamped.hpp"
+#include "geometry_msgs/msg/transform.hpp"
+
 #include "message_filters/subscriber.h"
 #include "message_filters/synchronizer.h"
 #include "message_filters/sync_policies/approximate_time.h"
+
 
 #include <cv_bridge/cv_bridge.h>
 #include <string> 
@@ -44,6 +51,8 @@ private:
     std::shared_ptr<message_filters::Subscriber<ImageMsg>> right_sub;
 
     std::shared_ptr<message_filters::Synchronizer<approximate_sync_policy>> syncApproximate;
+
+    rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr tf_publisher;
 };
 
 #endif
