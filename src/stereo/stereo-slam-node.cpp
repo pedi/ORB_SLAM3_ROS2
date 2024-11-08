@@ -124,7 +124,7 @@ void StereoSlamNode::PublishPointCloud(){
     }
     
     pointcloudmsg.header.stamp = this->get_clock()->now();
-    pointcloudmsg.header.frame_id = "left_camera";
+    pointcloudmsg.header.frame_id = "down";
     pointcloudmsg.height = 1;
     pointcloudmsg.width = count;
     pointcloudmsg.is_dense = true;
@@ -163,9 +163,3 @@ void StereoSlamNode::PublishPointCloud(){
     }
     pclpublisher->publish(pointcloudmsg);
 }
-
-
-
-
-
-
