@@ -50,5 +50,11 @@ def generate_launch_description():
                  '--frame-id', 'orbslam3',
                  '--child-frame-id', 'left_camera'],
             output='screen',
+        ),
+        ExecuteProcess(
+            cmd=['/opt/ros/humble/lib/tf2_ros/static_transform_publisher',
+                 '--frame-id', 'map',
+                 '--child-frame-id', 'orbslam3'],
+            output='screen',
         )
     ])
