@@ -51,6 +51,8 @@ StereoSlamNode::StereoSlamNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node, con
     // Sincroniza os subscritores
     syncApproximate = std::make_shared<message_filters::Synchronizer<approximate_sync_policy>>(approximate_sync_policy(10), *left_sub, *right_sub);
     syncApproximate->registerCallback(&StereoSlamNode::GrabStereo, this);
+    tf_publisher = this->create_publisher<geometry_msgs::msg::TransformStamped>("transform", 10);
+    pclpublisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("pointcloud", 10);
 }
 
 StereoSlamNode::~StereoSlamNode() {
@@ -77,20 +79,87 @@ void StereoSlamNode::GrabStereo(const ImageMsg::SharedPtr msgLeft, const ImageMs
         RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
         return;
     }
-
+    auto sendmsg = geometry_msgs::msg::TransformStamped();
+    Sophus::SE3f SE3;
     if (doRectify) {
         cv::Mat imLeft, imRight;
         cv::remap(cv_ptrLeft->image, imLeft, M1l, M2l, cv::INTER_LINEAR);
         cv::remap(cv_ptrRight->image, imRight, M1r, M2r, cv::INTER_LINEAR);
-        m_SLAM->TrackStereo(imLeft, imRight, Utility::StampToSec(msgLeft->header.stamp));
+        SE3 = m_SLAM->TrackStereo(imLeft, imRight, Utility::StampToSec(msgLeft->header.stamp));
     } else {
-        m_SLAM->TrackStereo(cv_ptrLeft->image, cv_ptrRight->image, Utility::StampToSec(msgLeft->header.stamp));
+        SE3 = m_SLAM->TrackStereo(cv_ptrLeft->image, cv_ptrRight->image, Utility::StampToSec(msgLeft->header.stamp));
     }
+
+    sendmsg.header.stamp = msgLeft->header.stamp;
+    sendmsg.header.frame_id = "map";
+    sendmsg.child_frame_id = "orbslam3";
+
+    sendmsg.transform.translation.x = -SE3.params()(6);
+    sendmsg.transform.translation.y = SE3.params()(4);
+    sendmsg.transform.translation.z = SE3.params()(5);
+
+    sendmsg.transform.rotation.x = SE3.params()(2);
+    sendmsg.transform.rotation.y = SE3.params()(0);
+    sendmsg.transform.rotation.z = SE3.params()(1);
+    sendmsg.transform.rotation.w = SE3.params()(3);
+
+    tf_publisher->publish(sendmsg);
+    PublishPointCloud();
+
 }
+void StereoSlamNode::PublishPointCloud(){
+    std::vector<int> indexes;
+    std::vector<ORB_SLAM3::MapPoint*> points = m_SLAM->GetTrackedMapPoints();
+    auto pointcloudmsg = sensor_msgs::msg::PointCloud2();
 
+    int count = 0;
+    
+    for (size_t i = 0; i < points.size(); i++)
+    {
+        if(points[i] != 0){
+            count++;
+            indexes.push_back(i);
 
+        }
+    }
+    
+    pointcloudmsg.header.stamp = this->get_clock()->now();
+    pointcloudmsg.header.frame_id = "down";
+    pointcloudmsg.height = 1;
+    pointcloudmsg.width = count;
+    pointcloudmsg.is_dense = true;
+    pointcloudmsg.fields.resize(3);
 
+    // Populate the fields
+    pointcloudmsg.fields[0].name = "x";
+    pointcloudmsg.fields[0].offset = 0;
+    pointcloudmsg.fields[0].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    pointcloudmsg.fields[0].count = 1;
 
+    pointcloudmsg.fields[1].name = "y";
+    pointcloudmsg.fields[1].offset = 4;
+    pointcloudmsg.fields[1].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    pointcloudmsg.fields[1].count = 1;
 
+    pointcloudmsg.fields[2].name = "z";
+    pointcloudmsg.fields[2].offset = 8;
+    pointcloudmsg.fields[2].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    pointcloudmsg.fields[2].count = 1;
 
+    pointcloudmsg.point_step = 12; // Size of a single point in bytes (3 floats * 4 bytes/float)
+    pointcloudmsg.row_step = pointcloudmsg.point_step * pointcloudmsg.width;
+    pointcloudmsg.is_bigendian = false;
+    pointcloudmsg.data.resize(pointcloudmsg.point_step*count);
 
+    for (size_t i = 0; i < count; i++)
+    {
+        float x = points[indexes[i]]->GetWorldPos()(0);
+        float y = points[indexes[i]]->GetWorldPos()(1);
+        float z = points[indexes[i]]->GetWorldPos()(2);
+
+        memcpy(&pointcloudmsg.data[i*12], &x, 4);
+        memcpy(&pointcloudmsg.data[i*12 + 4], &y, 4);
+        memcpy(&pointcloudmsg.data[i*12 + 8], &z, 4);
+    }
+    pclpublisher->publish(pointcloudmsg);
+}
