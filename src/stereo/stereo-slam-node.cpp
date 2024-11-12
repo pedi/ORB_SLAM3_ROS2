@@ -90,18 +90,27 @@ void StereoSlamNode::GrabStereo(const ImageMsg::SharedPtr msgLeft, const ImageMs
         SE3 = m_SLAM->TrackStereo(cv_ptrLeft->image, cv_ptrRight->image, Utility::StampToSec(msgLeft->header.stamp));
     }
 
-    sendmsg.header.stamp = msgLeft->header.stamp;
-    sendmsg.header.frame_id = "map";
-    sendmsg.child_frame_id = "orbslam3";
+    sendmsg.header.stamp = this->get_clock()->now();
+    sendmsg.header.frame_id = "orbslam3";
+    sendmsg.child_frame_id = "left_camera_link";
 
-    sendmsg.transform.translation.x = -SE3.params()(6);
-    sendmsg.transform.translation.y = SE3.params()(4);
-    sendmsg.transform.translation.z = SE3.params()(5);
+    sendmsg.transform.translation.x = SE3.params()(4);
+    sendmsg.transform.translation.y = SE3.params()(5);
+    sendmsg.transform.translation.z = SE3.params()(6);
 
-    sendmsg.transform.rotation.x = SE3.params()(2);
-    sendmsg.transform.rotation.y = SE3.params()(0);
-    sendmsg.transform.rotation.z = SE3.params()(1);
+    sendmsg.transform.rotation.x = SE3.params()(0);
+    sendmsg.transform.rotation.y = SE3.params()(1);
+    sendmsg.transform.rotation.z = SE3.params()(2);
     sendmsg.transform.rotation.w = SE3.params()(3);
+
+    // sendmsg.transform.translation.x = -SE3.params()(6);
+    // sendmsg.transform.translation.y = SE3.params()(4);
+    // sendmsg.transform.translation.z = SE3.params()(5);
+
+    // sendmsg.transform.rotation.x = SE3.params()(2);
+    // sendmsg.transform.rotation.y = SE3.params()(0);
+    // sendmsg.transform.rotation.z = SE3.params()(1);
+    // sendmsg.transform.rotation.w = SE3.params()(3);
 
     tf_publisher->publish(sendmsg);
     PublishPointCloud();
@@ -124,7 +133,7 @@ void StereoSlamNode::PublishPointCloud(){
     }
     
     pointcloudmsg.header.stamp = this->get_clock()->now();
-    pointcloudmsg.header.frame_id = "down";
+    pointcloudmsg.header.frame_id = "orbslam3";
     pointcloudmsg.height = 1;
     pointcloudmsg.width = count;
     pointcloudmsg.is_dense = true;

@@ -62,10 +62,10 @@ Stereo.T_c1_c2: !!opencv-matrix
           0.0, 0.0, 0.0, 1.0]
 
 # IMU noise parameters
-IMU.NoiseAcc: 0.001
-IMU.AccWalk: 0.00001
-IMU.NoiseGyro: 0.0001
-IMU.GyroWalk:  1.0e-07 
+IMU.NoiseAcc: 0.00011586812850583966 
+IMU.AccWalk: 8.574329765271016e-08 
+IMU.NoiseGyro:  3.235159377866961e-05
+IMU.GyroWalk:  2.106049843434181e-08
 IMU.Frequency: 330.0
 
 # Transformation from camera to IMU
