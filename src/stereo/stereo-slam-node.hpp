@@ -30,7 +30,8 @@ public:
     StereoSlamNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node, const std::string &strSettingsFile, const std::string &strDoRectify);
 
     ~StereoSlamNode();
-    void PublishPointCloud();
+    void PublishCurrentPointCloud();
+    void PublishTrackedPointCloud();
 
     rclcpp::Node* node_;
 
