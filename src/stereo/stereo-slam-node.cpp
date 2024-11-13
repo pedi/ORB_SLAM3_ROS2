@@ -167,7 +167,6 @@ void StereoSlamNode::PublishCurrentPointCloud(){
 void StereoSlamNode::PublishTrackedPointCloud(){
     std::vector<int> indexes;
     std::vector<ORB_SLAM3::MapPoint*> points = m_SLAM->GetAllMapPoints();
-    RCLCPP_INFO(this->get_logger(), "cv_bridge exception: %d", points.size());
 
     auto pointcloudmsg = sensor_msgs::msg::PointCloud2();
 
