@@ -124,22 +124,22 @@ void StereoSlamNode::PublishPath(){
     auto path_msg = nav_msgs::msg::Path();
 
     path_msg.header.stamp = this->get_clock()->now();
-    path_msg.header.frame_id = "map";
+    path_msg.header.frame_id = "orbslam3";
 
     for (size_t i = 0; i < trajectory.size(); i++)
     {
         geometry_msgs::msg::PoseStamped pose;
         Sophus::SE3f SE3 =  trajectory[i]->GetPose();
         pose.header.stamp = this->get_clock()->now();
-        pose.header.frame_id = "map";
+        pose.header.frame_id = "orbslam3";
 
-        pose.pose.position.x = -SE3.params()(6);
-        pose.pose.position.y = SE3.params()(4);
-        pose.pose.position.z = SE3.params()(5);
+        pose.pose.position.x = SE3.params()(4);
+        pose.pose.position.y = SE3.params()(5);
+        pose.pose.position.z = SE3.params()(6);
 
-        pose.pose.orientation.x = SE3.params()(2);
-        pose.pose.orientation.y = SE3.params()(0);
-        pose.pose.orientation.z = SE3.params()(1);
+        pose.pose.orientation.x = SE3.params()(0);
+        pose.pose.orientation.y = SE3.params()(1);
+        pose.pose.orientation.z = SE3.params()(2);
         pose.pose.orientation.w = SE3.params()(3);
 
         path_msg.poses.push_back(pose);
@@ -167,7 +167,7 @@ void StereoSlamNode::PublishCurrentPointCloud(){
     }
     
     pointcloudmsg.header.stamp = this->get_clock()->now();
-    pointcloudmsg.header.frame_id = "down";
+    pointcloudmsg.header.frame_id = "orbslam3";
     pointcloudmsg.height = 1;
     pointcloudmsg.width = count;
     pointcloudmsg.is_dense = true;
