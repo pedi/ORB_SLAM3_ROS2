@@ -53,6 +53,7 @@ StereoSlamNode::StereoSlamNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node, con
     syncApproximate->registerCallback(&StereoSlamNode::GrabStereo, this);
     tf_publisher = this->create_publisher<geometry_msgs::msg::TransformStamped>("transform", 10);
     pclpublisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("pointcloud", 10);
+    pathpublisher = this->create_publisher<nav_msgs::msg::Path>("path", 10);
 }
 
 StereoSlamNode::~StereoSlamNode() {
@@ -105,8 +106,40 @@ void StereoSlamNode::GrabStereo(const ImageMsg::SharedPtr msgLeft, const ImageMs
 
     tf_publisher->publish(sendmsg);
     PublishTrackedPointCloud();
+    PublishPath();
 
 }
+
+void StereoSlamNode::PublishPath(){
+    std::vector<ORB_SLAM3::KeyFrame*> trajectory = m_SLAM->GetTrajectory();
+    auto path_msg = nav_msgs::msg::Path();
+
+    path_msg.header.stamp = this->get_clock()->now();
+    path_msg.header.frame_id = "map";
+
+    for (size_t i = 0; i < trajectory.size(); i++)
+    {
+        geometry_msgs::msg::PoseStamped pose;
+        Sophus::SE3f SE3 =  trajectory[i]->GetPose();
+        pose.header.stamp = this->get_clock()->now();
+        pose.header.frame_id = "map";
+
+        pose.pose.position.x = -SE3.params()(6);
+        pose.pose.position.y = SE3.params()(4);
+        pose.pose.position.z = SE3.params()(5);
+
+        pose.pose.orientation.x = SE3.params()(2);
+        pose.pose.orientation.y = SE3.params()(0);
+        pose.pose.orientation.z = SE3.params()(1);
+        pose.pose.orientation.w = SE3.params()(3);
+
+        path_msg.poses.push_back(pose);
+
+    }
+    pathpublisher->publish(path_msg);
+    
+}
+
 void StereoSlamNode::PublishCurrentPointCloud(){
     std::vector<int> indexes;
     std::vector<ORB_SLAM3::MapPoint*> points = m_SLAM->GetTrackedMapPoints();
