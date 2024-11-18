@@ -2,7 +2,7 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, ExecuteProcess
 
 def generate_launch_description():
     return LaunchDescription([
@@ -25,6 +25,7 @@ def generate_launch_description():
             package='orbslam3_ros2',
             executable='stereo-inertial',
             name='stereo_inertial_orbslam3',
+            namespace='orbslam3_intertial',
             output='screen',
             arguments=[
                 LaunchConfiguration('vocabulary'),
@@ -42,5 +43,16 @@ def generate_launch_description():
                 ('camera/right', '/stereo_right'),
                 ('/imu' , '/model/bluerov2_heavy/imu')
             ]
-        )
+        ),
+
+        ExecuteProcess(
+            cmd=['/opt/ros/humble/lib/tf2_ros/static_transform_publisher',
+                    '--yaw', '-1.570796327',
+                    '--roll', '-1.5707963270',
+                    '--pitch', '0',
+                    '--frame-id', 'map',
+                    '--child-frame-id', 'orbslam3'],
+            output='screen',
+        ),
+
     ])

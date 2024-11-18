@@ -61,6 +61,8 @@ StereoInertialNode::StereoInertialNode(ORB_SLAM3::System *SLAM, const string &st
     subImgLeft_ = this->create_subscription<ImageMsg>("camera/left", 100, std::bind(&StereoInertialNode::GrabImageLeft, this, _1));
     subImgRight_ = this->create_subscription<ImageMsg>("camera/right", 100, std::bind(&StereoInertialNode::GrabImageRight, this, _1));
     
+    tf_publisher = this->create_publisher<geometry_msgs::msg::TransformStamped>("transform", 10);
+    pclpublisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("pointcloud", 10);
 
     syncThread_ = new std::thread(&StereoInertialNode::SyncWithImu, this);
 }
@@ -135,6 +137,7 @@ cv::Mat StereoInertialNode::GetImage(const ImageMsg::SharedPtr msg)
 void StereoInertialNode::SyncWithImu()
 {
     const double maxTimeDiff = 0.01;
+    Sophus::SE3f SE3;
 
     while (1)
     {
@@ -208,10 +211,112 @@ void StereoInertialNode::SyncWithImu()
                 cv::remap(imRight, imRight, M1r_, M2r_, cv::INTER_LINEAR);
             }
 
-            SLAM_->TrackStereo(imLeft, imRight, tImLeft, vImuMeas);
+            SE3 = SLAM_->TrackStereo(imLeft, imRight, tImLeft, vImuMeas);
+            // StereoInertialNode::Transform_orbslam2cam(SE3.translation(), SE3.unit_quaternion());
+            // ROS Transform message initialization
+            auto sendmsg = geometry_msgs::msg::TransformStamped();
+
+            sendmsg.header.stamp = this->get_clock()->now();
+            sendmsg.header.frame_id = "orbslam3";
+            sendmsg.child_frame_id = "left_camera_link";
+
+            // Set translation
+            sendmsg.transform.translation.x = SE3.params()(4);
+            sendmsg.transform.translation.y = SE3.params()(5);
+            sendmsg.transform.translation.z = SE3.params()(6);
+
+            // Set rotation
+            sendmsg.transform.rotation.x = SE3.params()(0);
+            sendmsg.transform.rotation.y = SE3.params()(1);
+            sendmsg.transform.rotation.z = SE3.params()(2);
+            sendmsg.transform.rotation.w = SE3.params()(3);
+
+            // Publish the transform message
+            tf_publisher->publish(sendmsg);
+            StereoInertialNode::PublishPointCloud(SLAM_->GetTrackedMapPoints());
 
             std::chrono::milliseconds tSleep(1);
             std::this_thread::sleep_for(tSleep);
         }
     }
+}
+
+void StereoInertialNode::Transform_orbslam2cam(const Eigen::Vector3f translation, const Eigen::Quaternionf rotation){
+    auto sendmsg = geometry_msgs::msg::TransformStamped();
+
+        // ROS Transform message initialization
+        sendmsg.header.stamp = this->get_clock()->now();
+        sendmsg.header.frame_id = "orbslam3";
+        sendmsg.child_frame_id = "left_camera_link";
+
+        // Set the translation
+        sendmsg.transform.translation.x = translation.x();
+        sendmsg.transform.translation.y = translation.y();
+        sendmsg.transform.translation.z = translation.z();
+
+        // Set the rotation (using quaternion)
+        sendmsg.transform.rotation.x = rotation.x();
+        sendmsg.transform.rotation.y = rotation.y();
+        sendmsg.transform.rotation.z = rotation.z();
+        sendmsg.transform.rotation.w = rotation.w();
+
+        // Publish the transform message
+        tf_publisher->publish(sendmsg);
+}
+
+void StereoInertialNode::PublishPointCloud(std::vector<ORB_SLAM3::MapPoint*> points){
+    std::vector<int> indexes;
+    // std::vector<ORB_SLAM3::MapPoint*> points = m_SLAM->GetTrackedMapPoints();
+    auto pointcloudmsg = sensor_msgs::msg::PointCloud2();
+
+    int count = 0;
+    
+    for (size_t i = 0; i < points.size(); i++)
+    {
+        if(points[i] != 0){
+            count++;
+            indexes.push_back(i);
+
+        }
+    }
+    
+    pointcloudmsg.header.stamp = this->get_clock()->now();
+    pointcloudmsg.header.frame_id = "orbslam3";
+    pointcloudmsg.height = 1;
+    pointcloudmsg.width = count;
+    pointcloudmsg.is_dense = true;
+    pointcloudmsg.fields.resize(3);
+
+    // Populate the fields
+    pointcloudmsg.fields[0].name = "x";
+    pointcloudmsg.fields[0].offset = 0;
+    pointcloudmsg.fields[0].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    pointcloudmsg.fields[0].count = 1;
+
+    pointcloudmsg.fields[1].name = "y";
+    pointcloudmsg.fields[1].offset = 4;
+    pointcloudmsg.fields[1].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    pointcloudmsg.fields[1].count = 1;
+
+    pointcloudmsg.fields[2].name = "z";
+    pointcloudmsg.fields[2].offset = 8;
+    pointcloudmsg.fields[2].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    pointcloudmsg.fields[2].count = 1;
+
+    pointcloudmsg.point_step = 12; // Size of a single point in bytes (3 floats * 4 bytes/float)
+    pointcloudmsg.row_step = pointcloudmsg.point_step * pointcloudmsg.width;
+    pointcloudmsg.is_bigendian = false;
+    pointcloudmsg.data.resize(pointcloudmsg.point_step*count);
+
+    for (size_t i = 0; i < count; i++)
+    {
+        float x = points[indexes[i]]->GetWorldPos()(0);
+        float y = points[indexes[i]]->GetWorldPos()(1);
+        float z = points[indexes[i]]->GetWorldPos()(2);
+
+        memcpy(&pointcloudmsg.data[i*12], &x, 4);
+        memcpy(&pointcloudmsg.data[i*12 + 4], &y, 4);
+        memcpy(&pointcloudmsg.data[i*12 + 8], &z, 4);
+    }
+    pclpublisher->publish(pointcloudmsg);
 }

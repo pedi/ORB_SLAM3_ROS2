@@ -7,6 +7,12 @@
 
 #include <cv_bridge/cv_bridge.h>
 
+#include "sensor_msgs/msg/point_cloud2.hpp"
+#include "sensor_msgs/msg/point_field.hpp"
+
+#include "geometry_msgs/msg/transform_stamped.hpp"
+#include "geometry_msgs/msg/transform.hpp"
+
 #include "System.h"
 #include "Frame.h"
 #include "Map.h"
@@ -29,10 +35,16 @@ private:
     void GrabImageRight(const ImageMsg::SharedPtr msgRight);
     cv::Mat GetImage(const ImageMsg::SharedPtr msg);
     void SyncWithImu();
+    void PublishPointCloud(std::vector<ORB_SLAM3::MapPoint*> points);
+    void Transform_orbslam2cam(const Eigen::Vector3f translation, const Eigen::Quaternionf rotation);
 
     rclcpp::Subscription<ImuMsg>::SharedPtr   subImu_;
     rclcpp::Subscription<ImageMsg>::SharedPtr subImgLeft_;
     rclcpp::Subscription<ImageMsg>::SharedPtr subImgRight_;
+
+    // Publisher for transform and PCL2
+    rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr tf_publisher;
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pclpublisher;
 
     ORB_SLAM3::System *SLAM_;
     std::thread *syncThread_;
