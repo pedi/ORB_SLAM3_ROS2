@@ -53,6 +53,7 @@ StereoSlamNode::StereoSlamNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node, con
     syncApproximate->registerCallback(&StereoSlamNode::GrabStereo, this);
     tf_publisher = this->create_publisher<geometry_msgs::msg::TransformStamped>("transform", 10);
     pclpublisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("pointcloud", 10);
+    pathpublisher = this->create_publisher<nav_msgs::msg::Path>("path", 10);
 }
 
 StereoSlamNode::~StereoSlamNode() {
@@ -104,12 +105,102 @@ void StereoSlamNode::GrabStereo(const ImageMsg::SharedPtr msgLeft, const ImageMs
     sendmsg.transform.rotation.w = SE3.params()(3);
 
     tf_publisher->publish(sendmsg);
-    PublishPointCloud();
+    PublishTrackedPointCloud();
+    PublishPath();
 
 }
-void StereoSlamNode::PublishPointCloud(){
+
+void StereoSlamNode::PublishPath(){
+    std::vector<ORB_SLAM3::KeyFrame*> trajectory = m_SLAM->GetTrajectory();
+    auto path_msg = nav_msgs::msg::Path();
+
+    path_msg.header.stamp = this->get_clock()->now();
+    path_msg.header.frame_id = "map";
+
+    for (size_t i = 0; i < trajectory.size(); i++)
+    {
+        geometry_msgs::msg::PoseStamped pose;
+        Sophus::SE3f SE3 =  trajectory[i]->GetPose();
+        pose.header.stamp = this->get_clock()->now();
+        pose.header.frame_id = "map";
+
+        pose.pose.position.x = -SE3.params()(6);
+        pose.pose.position.y = SE3.params()(4);
+        pose.pose.position.z = SE3.params()(5);
+
+        pose.pose.orientation.x = SE3.params()(2);
+        pose.pose.orientation.y = SE3.params()(0);
+        pose.pose.orientation.z = SE3.params()(1);
+        pose.pose.orientation.w = SE3.params()(3);
+
+        path_msg.poses.push_back(pose);
+
+    }
+    pathpublisher->publish(path_msg);
+    
+}
+
+void StereoSlamNode::PublishCurrentPointCloud(){
     std::vector<int> indexes;
     std::vector<ORB_SLAM3::MapPoint*> points = m_SLAM->GetTrackedMapPoints();
+    auto pointcloudmsg = sensor_msgs::msg::PointCloud2();
+    
+
+    int count = 0;
+    
+    for (size_t i = 0; i < points.size(); i++)
+    {
+        if(points[i] != 0){
+            count++;
+            indexes.push_back(i);
+
+        }
+    }
+    
+    pointcloudmsg.header.stamp = this->get_clock()->now();
+    pointcloudmsg.header.frame_id = "down";
+    pointcloudmsg.height = 1;
+    pointcloudmsg.width = count;
+    pointcloudmsg.is_dense = true;
+    pointcloudmsg.fields.resize(3);
+
+    // Populate the fields
+    pointcloudmsg.fields[0].name = "x";
+    pointcloudmsg.fields[0].offset = 0;
+    pointcloudmsg.fields[0].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    pointcloudmsg.fields[0].count = 1;
+
+    pointcloudmsg.fields[1].name = "y";
+    pointcloudmsg.fields[1].offset = 4;
+    pointcloudmsg.fields[1].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    pointcloudmsg.fields[1].count = 1;
+
+    pointcloudmsg.fields[2].name = "z";
+    pointcloudmsg.fields[2].offset = 8;
+    pointcloudmsg.fields[2].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    pointcloudmsg.fields[2].count = 1;
+
+    pointcloudmsg.point_step = 12; // Size of a single point in bytes (3 floats * 4 bytes/float)
+    pointcloudmsg.row_step = pointcloudmsg.point_step * pointcloudmsg.width;
+    pointcloudmsg.is_bigendian = false;
+    pointcloudmsg.data.resize(pointcloudmsg.point_step*count);
+
+    for (size_t i = 0; i < count; i++)
+    {
+        float x = points[indexes[i]]->GetWorldPos()(0);
+        float y = points[indexes[i]]->GetWorldPos()(1);
+        float z = points[indexes[i]]->GetWorldPos()(2);
+
+        memcpy(&pointcloudmsg.data[i*12], &x, 4);
+        memcpy(&pointcloudmsg.data[i*12 + 4], &y, 4);
+        memcpy(&pointcloudmsg.data[i*12 + 8], &z, 4);
+    }
+    pclpublisher->publish(pointcloudmsg);
+}
+void StereoSlamNode::PublishTrackedPointCloud(){
+    std::vector<int> indexes;
+    std::vector<ORB_SLAM3::MapPoint*> points = m_SLAM->GetAllMapPoints();
+
     auto pointcloudmsg = sensor_msgs::msg::PointCloud2();
 
     int count = 0;
@@ -162,4 +253,5 @@ void StereoSlamNode::PublishPointCloud(){
         memcpy(&pointcloudmsg.data[i*12 + 8], &z, 4);
     }
     pclpublisher->publish(pointcloudmsg);
+
 }

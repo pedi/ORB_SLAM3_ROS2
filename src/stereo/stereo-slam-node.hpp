@@ -10,6 +10,8 @@
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "geometry_msgs/msg/transform.hpp"
 
+#include "nav_msgs/msg/path.hpp"
+
 #include "message_filters/subscriber.h"
 #include "message_filters/synchronizer.h"
 #include "message_filters/sync_policies/approximate_time.h"
@@ -30,7 +32,9 @@ public:
     StereoSlamNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node, const std::string &strSettingsFile, const std::string &strDoRectify);
 
     ~StereoSlamNode();
-    void PublishPointCloud();
+    void PublishCurrentPointCloud();
+    void PublishTrackedPointCloud();
+    void PublishPath();
 
     rclcpp::Node* node_;
 
@@ -55,6 +59,7 @@ private:
 
     rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr tf_publisher;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pclpublisher;
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pathpublisher;
 };
 
 #endif
