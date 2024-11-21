@@ -27,6 +27,7 @@ def generate_launch_description():
             executable='stereo',
             name='stereo_orbslam3',
             output='screen',
+            namespace='orbslam3',
             arguments=[
                 LaunchConfiguration('vocabulary'),
                 PathJoinSubstitution([
@@ -54,9 +55,9 @@ def generate_launch_description():
 
         ExecuteProcess(
             cmd=['/opt/ros/humble/lib/tf2_ros/static_transform_publisher',
-                    '--yaw', '-1.570796327',
-                    '--roll', '-1.5707963270',
-                    '--pitch', '0',
+                    # '--yaw', '-1.570796327',
+                    # '--roll', '-1.5707963270',
+                    # '--pitch', '0',
                     '--frame-id', 'map',
                     '--child-frame-id', 'orbslam3'],
             output='screen',

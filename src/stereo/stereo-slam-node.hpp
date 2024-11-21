@@ -8,7 +8,11 @@
 #include "sensor_msgs/msg/point_field.hpp"
 
 #include "geometry_msgs/msg/transform_stamped.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/transform.hpp"
+
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+#include "tf2/LinearMath/Transform.h"
 
 #include "nav_msgs/msg/path.hpp"
 
@@ -19,7 +23,7 @@
 
 #include <cv_bridge/cv_bridge.h>
 #include <string> 
-
+#include <opencv2/opencv.hpp>
 #include "System.h"
 #include "Frame.h"
 #include "Map.h"
@@ -35,6 +39,8 @@ public:
     void PublishCurrentPointCloud();
     void PublishTrackedPointCloud();
     void PublishPath();
+    void PublishPose(Sophus::SE3f &pose);
+    tf2::Transform TransformFromSophus(Sophus::SE3f &pose);
 
     rclcpp::Node* node_;
 
@@ -45,6 +51,8 @@ private:
     void GrabStereo(const ImageMsg::SharedPtr msgLeft, const ImageMsg::SharedPtr msgRight);
 
     ORB_SLAM3::System* m_SLAM;
+
+    rclcpp::Time current_frame_time_;
 
     bool doRectify;
     cv::Mat M1l, M2l, M1r, M2r;
@@ -58,8 +66,10 @@ private:
     std::shared_ptr<message_filters::Synchronizer<approximate_sync_policy>> syncApproximate;
 
     rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr tf_publisher;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr posepublisher;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pclpublisher;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pathpublisher;
+
 };
 
 #endif
