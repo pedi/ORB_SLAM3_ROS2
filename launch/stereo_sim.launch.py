@@ -62,6 +62,15 @@ def generate_launch_description():
                     '--child-frame-id', 'orbslam3'],
             output='screen',
         ),
+        ExecuteProcess(
+            cmd=['/opt/ros/humble/lib/tf2_ros/static_transform_publisher',
+                    '--yaw', '-1.570796327',
+                    '--roll', '-1.5707963270',
+                    '--pitch', '0',
+                    '--frame-id', 'orbslam3',
+                    '--child-frame-id', 'down'],
+            output='screen',
+        ),
 
 
     
