@@ -13,10 +13,12 @@
 
 #include "utility.hpp"
 
-class MonocularSlamNode : public rclcpp::Node
+#include "slam_node.hpp"
+
+class MonocularSlamNode : public SlamNode
 {
 public:
-    MonocularSlamNode(ORB_SLAM3::System* pSLAM);
+    MonocularSlamNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node);
 
     ~MonocularSlamNode();
 
@@ -24,8 +26,6 @@ private:
     using ImageMsg = sensor_msgs::msg::Image;
 
     void GrabImage(const sensor_msgs::msg::Image::SharedPtr msg);
-
-    ORB_SLAM3::System* m_SLAM;
 
     cv_bridge::CvImagePtr m_cvImPtr;
 

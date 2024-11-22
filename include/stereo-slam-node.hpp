@@ -36,23 +36,12 @@ public:
     StereoSlamNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node, const std::string &strSettingsFile, const std::string &strDoRectify);
 
     ~StereoSlamNode();
-    void PublishCurrentPointCloud();
-    void PublishTrackedPointCloud();
-    void PublishPath();
-    void PublishPose(Sophus::SE3f &pose);
-    tf2::Transform TransformFromSophus(Sophus::SE3f &pose);
-
-    rclcpp::Node* node_;
 
 private:
     using ImageMsg = sensor_msgs::msg::Image;
     using approximate_sync_policy = message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, sensor_msgs::msg::Image>;
 
     void GrabStereo(const ImageMsg::SharedPtr msgLeft, const ImageMsg::SharedPtr msgRight);
-
-    ORB_SLAM3::System* m_SLAM;
-
-    rclcpp::Time current_frame_time_;
 
     bool doRectify;
     cv::Mat M1l, M2l, M1r, M2r;
@@ -64,11 +53,6 @@ private:
     std::shared_ptr<message_filters::Subscriber<ImageMsg>> right_sub;
 
     std::shared_ptr<message_filters::Synchronizer<approximate_sync_policy>> syncApproximate;
-
-    rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr tf_publisher;
-    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr posepublisher;
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pclpublisher;
-    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pathpublisher;
 
 };
 

@@ -33,7 +33,7 @@
 class SlamNode : public rclcpp::Node
 {
 public:
-    SlamNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node, const std::string &strSettingsFile, const std::string &strDoRectify);
+    SlamNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node);
 
     ~SlamNode();
     void PublishCurrentPointCloud();
@@ -48,16 +48,11 @@ protected:
     ORB_SLAM3::System* m_SLAM;
     std::vector<ORB_SLAM3::KeyFrame*> trajectory;
     std::vector<ORB_SLAM3::MapPoint*> map_points;
-    Sophus::SE3f* pose;
-
-private:
-    using ImageMsg = sensor_msgs::msg::Image;
-    using approximate_sync_policy = message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, sensor_msgs::msg::Image>;
-
-
+    Sophus::SE3f pose;
     rclcpp::Time current_frame_time_;
 
-    bool doRectify;
+private:
+    using ImageMsg = sensor_msgs::msg::Image;    
 
     rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr tf_publisher;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr posepublisher;
