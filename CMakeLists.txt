@@ -44,6 +44,12 @@ add_executable(mono
 )
 ament_target_dependencies(mono rclcpp sensor_msgs cv_bridge ORB_SLAM3 Pangolin OpenCV tf2_geometry_msgs tf2_ros nav_msgs)
 
+add_executable(stereo
+  src/stereo.cpp
+  src/slam_node.cc
+)
+ament_target_dependencies(stereo rclcpp sensor_msgs cv_bridge ORB_SLAM3 Pangolin OpenCV tf2_geometry_msgs tf2_ros nav_msgs)
+
 #add_executable(rgbd
 #  src/rgbd/rgbd.cpp
 #  src/rgbd/rgbd-slam-node.cpp

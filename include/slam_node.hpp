@@ -1,5 +1,5 @@
-#ifndef __STEREO_SLAM_NODE_HPP__
-#define __STEREO_SLAM_NODE_HPP__
+#ifndef __SLAM_NODE_HPP__
+#define __SLAM_NODE_HPP__
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
@@ -50,11 +50,12 @@ protected:
     std::vector<ORB_SLAM3::MapPoint*> map_points;
     Sophus::SE3f pose;
     rclcpp::Time current_frame_time_;
+    rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr tf_publisher;
 
 private:
     using ImageMsg = sensor_msgs::msg::Image;    
 
-    rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr tf_publisher;
+    
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr posepublisher;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pclpublisher;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pathpublisher;

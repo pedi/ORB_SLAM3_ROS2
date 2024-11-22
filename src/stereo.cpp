@@ -10,6 +10,9 @@
 
 #include "System.h"
 
+using std::placeholders::_1;
+using std::placeholders::_2;
+
 int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
@@ -35,11 +38,10 @@ int main(int argc, char **argv)
 }
 
 
-using std::placeholders::_1;
-using std::placeholders::_2;
+
 
 StereoSlamNode::StereoSlamNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node, const std::string &strSettingsFile, const std::string &strDoRectify)
-: Node("ORB_SLAM3_ROS2"), m_SLAM(pSLAM), node_(node)
+: SlamNode(pSLAM, node)
 {
     stringstream ss(strDoRectify);
     ss >> boolalpha >> doRectify;
@@ -79,8 +81,8 @@ StereoSlamNode::StereoSlamNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node, con
     }
 
     // Cria os subscritores usando o nó passado
-    left_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(node_, "camera/left");
-    right_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(node_, "camera/right");
+    left_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(node, "camera/left");
+    right_sub = std::make_shared<message_filters::Subscriber<ImageMsg>>(node, "camera/right");
 
     // Sincroniza os subscritores
     syncApproximate = std::make_shared<message_filters::Synchronizer<approximate_sync_policy>>(approximate_sync_policy(10), *left_sub, *right_sub);
