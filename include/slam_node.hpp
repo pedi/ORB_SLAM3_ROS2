@@ -45,6 +45,8 @@ public:
     rclcpp::Node* node_;
 
 protected:
+    using ImageMsg = sensor_msgs::msg::Image;
+
     ORB_SLAM3::System* m_SLAM;
     std::vector<ORB_SLAM3::KeyFrame*> trajectory;
     std::vector<ORB_SLAM3::MapPoint*> map_points;
@@ -53,7 +55,7 @@ protected:
     rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr tf_publisher;
 
 private:
-    using ImageMsg = sensor_msgs::msg::Image;    
+       
 
     
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr posepublisher;

@@ -8,6 +8,8 @@
 
 #include "System.h"
 
+using std::placeholders::_1;
+
 int main(int argc, char **argv)
 {
     if(argc < 4)
@@ -28,17 +30,20 @@ int main(int argc, char **argv)
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
 
     bool visualization = true;
+    auto node = std::make_shared<rclcpp::Node>("run_slam");
+
     ORB_SLAM3::System pSLAM(argv[1], argv[2], ORB_SLAM3::System::IMU_STEREO, visualization);
 
-    auto node = std::make_shared<StereoInertialNode>(&pSLAM, argv[2], argv[3], argv[4]);
+    std::shared_ptr<StereoInertialNode> slam_ros;
+    slam_ros = std::make_shared<StereoInertialNode>(&pSLAM, node.get(), argv[2], argv[3], argv[4]);
     std::cout << "============================" << std::endl;
 
-    rclcpp::spin(node);
+    rclcpp::spin(slam_ros->node_->get_node_base_interface());
     rclcpp::shutdown();
 
     return 0;
 }
-StereoInertialNode::StereoInertialNode(ORB_SLAM3::System *SLAM, const std::string &strSettingsFile, const std::string &strDoRectify, const std::string &strDoEqual) :
+StereoInertialNode::StereoInertialNode(ORB_SLAM3::System *pSLAM, rclcpp::Node* node ,const std::string &strSettingsFile, const std::string &strDoRectify, const std::string &strDoEqual) :
     SlamNode(pSLAM, node)
 {
     stringstream ss_rec(strDoRectify);
@@ -90,12 +95,12 @@ StereoInertialNode::StereoInertialNode(ORB_SLAM3::System *SLAM, const std::strin
         cv::initUndistortRectifyMap(K_r, D_r, R_r, P_r.rowRange(0, 3).colRange(0, 3), cv::Size(cols_r, rows_r), CV_32F, M1r_, M2r_);
     }
 
-    subImu_ = this->create_subscription<ImuMsg>("/imu", 1000, std::bind(&StereoInertialNode::GrabImu, this, _1));
-    subImgLeft_ = this->create_subscription<ImageMsg>("camera/left", 100, std::bind(&StereoInertialNode::GrabImageLeft, this, _1));
-    subImgRight_ = this->create_subscription<ImageMsg>("camera/right", 100, std::bind(&StereoInertialNode::GrabImageRight, this, _1));
+    subImu_ = node->create_subscription<ImuMsg>("/imu", 1000, std::bind(&StereoInertialNode::GrabImu, this, _1));
+    subImgLeft_ = node->create_subscription<ImageMsg>("camera/left", 100, std::bind(&StereoInertialNode::GrabImageLeft, this, _1));
+    subImgRight_ = node->create_subscription<ImageMsg>("camera/right", 100, std::bind(&StereoInertialNode::GrabImageRight, this, _1));
     
-    tf_publisher = this->create_publisher<geometry_msgs::msg::TransformStamped>("transform", 10);
-    pclpublisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("pointcloud", 10);
+    tf_publisher = node->create_publisher<geometry_msgs::msg::TransformStamped>("transform", 10);
+    pclpublisher = node->create_publisher<sensor_msgs::msg::PointCloud2>("pointcloud", 10);
 
     syncThread_ = new std::thread(&StereoInertialNode::SyncWithImu, this);
 }
@@ -266,7 +271,9 @@ void StereoInertialNode::SyncWithImu()
 
             // Publish the transform message
             tf_publisher->publish(sendmsg);
-            StereoInertialNode::PublishPointCloud(SLAM_->GetTrackedMapPoints());
+            PublishTrackedPointCloud();
+            PublishPose(SE3);
+            PublishPath();
 
             std::chrono::milliseconds tSleep(1);
             std::this_thread::sleep_for(tSleep);

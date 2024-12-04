@@ -27,7 +27,7 @@ using ImageMsg = sensor_msgs::msg::Image;
 class StereoInertialNode : public SlamNode
 {
 public:
-    StereoInertialNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node, const std::string &strSettingsFile, const std::string &strDoRectify);
+    StereoInertialNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node, const std::string &strSettingsFile, const std::string &strDoRectify , const std::string &strDoEqual);
     ~StereoInertialNode();
 
 private:
