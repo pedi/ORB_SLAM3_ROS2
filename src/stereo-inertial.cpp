@@ -95,12 +95,12 @@ StereoInertialNode::StereoInertialNode(ORB_SLAM3::System *pSLAM, rclcpp::Node* n
         cv::initUndistortRectifyMap(K_r, D_r, R_r, P_r.rowRange(0, 3).colRange(0, 3), cv::Size(cols_r, rows_r), CV_32F, M1r_, M2r_);
     }
 
-    subImu_ = node->create_subscription<ImuMsg>("/imu", 1000, std::bind(&StereoInertialNode::GrabImu, this, _1));
-    subImgLeft_ = node->create_subscription<ImageMsg>("camera/left", 100, std::bind(&StereoInertialNode::GrabImageLeft, this, _1));
-    subImgRight_ = node->create_subscription<ImageMsg>("camera/right", 100, std::bind(&StereoInertialNode::GrabImageRight, this, _1));
+    subImu_ = this->create_subscription<ImuMsg>("/imu", 1000, std::bind(&StereoInertialNode::GrabImu, this, _1));
+    subImgLeft_ = this->create_subscription<ImageMsg>("camera/left", 100, std::bind(&StereoInertialNode::GrabImageLeft, this, _1));
+    subImgRight_ = this->create_subscription<ImageMsg>("camera/right", 100, std::bind(&StereoInertialNode::GrabImageRight, this, _1));
     
-    tf_publisher = node->create_publisher<geometry_msgs::msg::TransformStamped>("transform", 10);
-    pclpublisher = node->create_publisher<sensor_msgs::msg::PointCloud2>("pointcloud", 10);
+    tf_publisher = this->create_publisher<geometry_msgs::msg::TransformStamped>("transform", 10);
+    pclpublisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("pointcloud", 10);
 
     syncThread_ = new std::thread(&StereoInertialNode::SyncWithImu, this);
 }
@@ -123,6 +123,7 @@ void StereoInertialNode::GrabImu(const ImuMsg::SharedPtr msg)
     bufMutex_.lock();
     imuBuf_.push(msg);
     bufMutex_.unlock();
+    RCLCPP_INFO(this->get_logger(), "IMU received");
 }
 
 void StereoInertialNode::GrabImageLeft(const ImageMsg::SharedPtr msgLeft)
@@ -134,6 +135,7 @@ void StereoInertialNode::GrabImageLeft(const ImageMsg::SharedPtr msgLeft)
     imgLeftBuf_.push(msgLeft);
 
     bufMutexLeft_.unlock();
+    RCLCPP_INFO(this->get_logger(), "Left image received");
 }
 
 void StereoInertialNode::GrabImageRight(const ImageMsg::SharedPtr msgRight)
@@ -145,6 +147,7 @@ void StereoInertialNode::GrabImageRight(const ImageMsg::SharedPtr msgRight)
     imgRightBuf_.push(msgRight);
 
     bufMutexRight_.unlock();
+    RCLCPP_INFO(this->get_logger(), "Right image received");
 }
 
 cv::Mat StereoInertialNode::GetImage(const ImageMsg::SharedPtr msg)
