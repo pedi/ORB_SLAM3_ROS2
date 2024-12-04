@@ -38,7 +38,7 @@ int main(int argc, char **argv)
     slam_ros = std::make_shared<StereoInertialNode>(&pSLAM, node.get(), argv[2], argv[3], argv[4]);
     std::cout << "============================" << std::endl;
 
-    rclcpp::spin(slam_ros->node_->get_node_base_interface());
+    rclcpp::spin(slam_ros->get_node_base_interface());
     rclcpp::shutdown();
 
     return 0;
@@ -95,14 +95,18 @@ StereoInertialNode::StereoInertialNode(ORB_SLAM3::System *pSLAM, rclcpp::Node* n
         cv::initUndistortRectifyMap(K_r, D_r, R_r, P_r.rowRange(0, 3).colRange(0, 3), cv::Size(cols_r, rows_r), CV_32F, M1r_, M2r_);
     }
 
-    subImu_ = this->create_subscription<ImuMsg>("/imu", 1000, std::bind(&StereoInertialNode::GrabImu, this, _1));
-    subImgLeft_ = this->create_subscription<ImageMsg>("camera/left", 100, std::bind(&StereoInertialNode::GrabImageLeft, this, _1));
-    subImgRight_ = this->create_subscription<ImageMsg>("camera/right", 100, std::bind(&StereoInertialNode::GrabImageRight, this, _1));
+    // RCLCPP_INFO(this->get_logger(), "--- Subscribing");
+
+    subImu_ = this->create_subscription<sensor_msgs::msg::Imu>("/imu", 1000, std::bind(&StereoInertialNode::GrabImu, this, _1));
+    subImgLeft_ = this->create_subscription<sensor_msgs::msg::Image>("camera/left", 100, std::bind(&StereoInertialNode::GrabImageLeft, this, _1));
+    subImgRight_ = this->create_subscription<sensor_msgs::msg::Image>("camera/right", 100, std::bind(&StereoInertialNode::GrabImageRight, this, _1));
     
     tf_publisher = this->create_publisher<geometry_msgs::msg::TransformStamped>("transform", 10);
     pclpublisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("pointcloud", 10);
 
     syncThread_ = new std::thread(&StereoInertialNode::SyncWithImu, this);
+    // RCLCPP_INFO(this->get_logger(), "Subscribed");
+
 }
 
 StereoInertialNode::~StereoInertialNode()
@@ -120,14 +124,15 @@ StereoInertialNode::~StereoInertialNode()
 
 void StereoInertialNode::GrabImu(const ImuMsg::SharedPtr msg)
 {
+    // RCLCPP_INFO(this->get_logger(), "IMU received");
     bufMutex_.lock();
     imuBuf_.push(msg);
     bufMutex_.unlock();
-    RCLCPP_INFO(this->get_logger(), "IMU received");
 }
 
 void StereoInertialNode::GrabImageLeft(const ImageMsg::SharedPtr msgLeft)
 {
+    // RCLCPP_INFO(this->get_logger(), "Left image received");
     bufMutexLeft_.lock();
 
     if (!imgLeftBuf_.empty())
@@ -135,11 +140,11 @@ void StereoInertialNode::GrabImageLeft(const ImageMsg::SharedPtr msgLeft)
     imgLeftBuf_.push(msgLeft);
 
     bufMutexLeft_.unlock();
-    RCLCPP_INFO(this->get_logger(), "Left image received");
 }
 
 void StereoInertialNode::GrabImageRight(const ImageMsg::SharedPtr msgRight)
 {
+    // RCLCPP_INFO(this->get_logger(), "Right image received");
     bufMutexRight_.lock();
 
     if (!imgRightBuf_.empty())
@@ -147,13 +152,14 @@ void StereoInertialNode::GrabImageRight(const ImageMsg::SharedPtr msgRight)
     imgRightBuf_.push(msgRight);
 
     bufMutexRight_.unlock();
-    RCLCPP_INFO(this->get_logger(), "Right image received");
 }
 
 cv::Mat StereoInertialNode::GetImage(const ImageMsg::SharedPtr msg)
 {
     // Copy the ros image message to cv::Mat.
     cv_bridge::CvImageConstPtr cv_ptr;
+    // RCLCPP_INFO(this->get_logger(), "Get images");
+
 
     try
     {
@@ -179,9 +185,11 @@ void StereoInertialNode::SyncWithImu()
 {
     const double maxTimeDiff = 0.01;
     Sophus::SE3f SE3;
+    // RCLCPP_INFO(this->get_logger(), "Sync IMU");
 
     while (1)
     {
+        
         cv::Mat imLeft, imRight;
         double tImLeft = 0, tImRight = 0;
         if (!imgLeftBuf_.empty() && !imgRightBuf_.empty() && !imuBuf_.empty())
@@ -251,8 +259,8 @@ void StereoInertialNode::SyncWithImu()
                 cv::remap(imLeft, imLeft, M1l_, M2l_, cv::INTER_LINEAR);
                 cv::remap(imRight, imRight, M1r_, M2r_, cv::INTER_LINEAR);
             }
-
-            SE3 = SLAM_->TrackStereo(imLeft, imRight, tImLeft, vImuMeas);
+            RCLCPP_INFO(this->get_logger(), "Size imu: %d", vImuMeas.size());
+            SLAM_->TrackStereo(imLeft, imRight, tImLeft, vImuMeas);
             // StereoInertialNode::Transform_orbslam2cam(SE3.translation(), SE3.unit_quaternion());
             // ROS Transform message initialization
             auto sendmsg = geometry_msgs::msg::TransformStamped();
@@ -277,9 +285,10 @@ void StereoInertialNode::SyncWithImu()
             PublishTrackedPointCloud();
             PublishPose(SE3);
             PublishPath();
-
             std::chrono::milliseconds tSleep(1);
             std::this_thread::sleep_for(tSleep);
         }
+
+
     }
 }

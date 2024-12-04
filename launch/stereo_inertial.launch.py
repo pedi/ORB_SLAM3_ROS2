@@ -17,7 +17,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'yaml_file',
-            default_value='sm2_stereo.yaml',
+            default_value='stereo-inertial.yaml',
             description='Name of the ORB_SLAM3 YAML configuration file'
         ),
         
@@ -31,15 +31,16 @@ def generate_launch_description():
                 PathJoinSubstitution([
                     FindPackageShare('orbslam3_ros2'),
                     'config',  
-                    'stereo',
+                    'stereo-inertial',
                     LaunchConfiguration('yaml_file')
                 ]),
+                'False'
                 'False'
             ],
             remappings=[
                 ('camera/left', '/SM2/left/image_raw'),
-                ('camera/right', '/SM2/left/image_raw'),
-                {''}
+                ('camera/right', '/SM2/right/image_raw'),
+                ('/imu' , '/imu/data_raw')  
             ]
         )
     ])
