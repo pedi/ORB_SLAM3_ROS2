@@ -19,14 +19,15 @@
 #include "Tracking.h"
 
 #include "utility.hpp"
+#include "slam_node.hpp"
 
 using ImuMsg = sensor_msgs::msg::Imu;
 using ImageMsg = sensor_msgs::msg::Image;
 
-class StereoInertialNode : public rclcpp::Node
+class StereoInertialNode : public SlamNode
 {
 public:
-    StereoInertialNode(ORB_SLAM3::System* pSLAM, const string &strSettingsFile, const string &strDoRectify, const string &strDoEqual);
+    StereoInertialNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node, const std::string &strSettingsFile, const std::string &strDoRectify);
     ~StereoInertialNode();
 
 private:
