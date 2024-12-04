@@ -30,7 +30,7 @@ int main(int argc, char **argv)
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
 
     bool visualization = true;
-    auto node = std::make_shared<rclcpp::Node>("run_slam");
+    auto node = std::make_shared<rclcpp::Node>("orb_slam");
 
     ORB_SLAM3::System pSLAM(argv[1], argv[2], ORB_SLAM3::System::IMU_STEREO, visualization);
 

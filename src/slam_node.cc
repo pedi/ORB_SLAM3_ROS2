@@ -1,7 +1,7 @@
 #include "slam_node.hpp"
 
 SlamNode::SlamNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node)
-: Node("ORB_SLAM3"), m_SLAM(pSLAM), node_(node)
+: Node("ORB_SLAM3_Inertial"), m_SLAM(pSLAM), node_(node)
 {
     tf_publisher = this->create_publisher<geometry_msgs::msg::TransformStamped>("transform", 10);
     pclpublisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("pointcloud", 10);
