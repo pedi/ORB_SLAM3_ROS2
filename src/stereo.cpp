@@ -2,6 +2,7 @@
 #include<algorithm>
 #include<fstream>
 #include<chrono>
+#include <string> 
 
 #include "rclcpp/rclcpp.hpp"
 #include "stereo-slam-node.hpp"
@@ -9,6 +10,7 @@
 #include <opencv2/core/core.hpp>
 
 #include "System.h"
+
 
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -23,8 +25,8 @@ int main(int argc, char **argv)
     }
     auto node = std::make_shared<rclcpp::Node>("run_slam");
 
-
-    bool visualization = true;
+    
+    bool visualization = strcmp(argv[4],"True") == 0;
     ORB_SLAM3::System pSLAM(argv[1], argv[2], ORB_SLAM3::System::STEREO, visualization);
 
     std::shared_ptr<StereoSlamNode> slam_ros;
@@ -111,8 +113,7 @@ void StereoSlamNode::GrabStereo(const ImageMsg::SharedPtr msgLeft, const ImageMs
     }
 
     current_frame_time_ = now();
-    auto sendmsg = geometry_msgs::msg::TransformStamped();
-    Sophus::SE3f SE3;
+
     if (doRectify) {
         cv::Mat imLeft, imRight;
         cv::remap(cv_ptrLeft->image, imLeft, M1l, M2l, cv::INTER_LINEAR);
@@ -121,33 +122,8 @@ void StereoSlamNode::GrabStereo(const ImageMsg::SharedPtr msgLeft, const ImageMs
     } else {
         SE3 = m_SLAM->TrackStereo(cv_ptrLeft->image, cv_ptrRight->image, Utility::StampToSec(msgLeft->header.stamp));
     }
-    //TODO: Transform point clound based on map frame
-    sendmsg.header.stamp = current_frame_time_;
-    sendmsg.header.frame_id = "orbslam3";
-    sendmsg.child_frame_id = "left_camera_link";
 
-    sendmsg.transform.translation.x = SE3.params()(4);
-    sendmsg.transform.translation.y = SE3.params()(5);
-    sendmsg.transform.translation.z = SE3.params()(6);
-
-    sendmsg.transform.rotation.x = SE3.params()(0);
-    sendmsg.transform.rotation.y = SE3.params()(1);
-    sendmsg.transform.rotation.z = SE3.params()(2);
-    sendmsg.transform.rotation.w = SE3.params()(3);
-
-    // sendmsg.transform.translation.x = -SE3.params()(6);
-    // sendmsg.transform.translation.y = SE3.params()(4);
-    // sendmsg.transform.translation.z = SE3.params()(5);
-
-    // sendmsg.transform.rotation.x = SE3.params()(2);
-    // sendmsg.transform.rotation.y = SE3.params()(0);
-    // sendmsg.transform.rotation.z = SE3.params()(1);
-    // sendmsg.transform.rotation.w = SE3.params()(3);
-
-    tf_publisher->publish(sendmsg);
-    PublishTrackedPointCloud();
-    PublishPose(SE3);
-    PublishPath();
+    Update();
 }
 
 

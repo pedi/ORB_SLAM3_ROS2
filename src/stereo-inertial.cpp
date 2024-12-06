@@ -26,9 +26,6 @@ int main(int argc, char **argv)
 
     rclcpp::init(argc, argv);
 
-    // malloc error using new.. try shared ptr
-    // Create SLAM system. It initializes all system threads and gets ready to process frames.
-
     bool visualization = true;
     auto node = std::make_shared<rclcpp::Node>("orb_slam");
 
@@ -95,7 +92,6 @@ StereoInertialNode::StereoInertialNode(ORB_SLAM3::System *pSLAM, rclcpp::Node* n
         cv::initUndistortRectifyMap(K_r, D_r, R_r, P_r.rowRange(0, 3).colRange(0, 3), cv::Size(cols_r, rows_r), CV_32F, M1r_, M2r_);
     }
 
-    // RCLCPP_INFO(this->get_logger(), "--- Subscribing");
 
     subImu_ = this->create_subscription<sensor_msgs::msg::Imu>("/imu", 1000, std::bind(&StereoInertialNode::GrabImu, this, _1));
     subImgLeft_ = this->create_subscription<sensor_msgs::msg::Image>("camera/left", 100, std::bind(&StereoInertialNode::GrabImageLeft, this, _1));
@@ -105,7 +101,6 @@ StereoInertialNode::StereoInertialNode(ORB_SLAM3::System *pSLAM, rclcpp::Node* n
     pclpublisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("pointcloud", 10);
 
     syncThread_ = new std::thread(&StereoInertialNode::SyncWithImu, this);
-    // RCLCPP_INFO(this->get_logger(), "Subscribed");
 
 }
 
@@ -156,10 +151,7 @@ void StereoInertialNode::GrabImageRight(const ImageMsg::SharedPtr msgRight)
 
 cv::Mat StereoInertialNode::GetImage(const ImageMsg::SharedPtr msg)
 {
-    // Copy the ros image message to cv::Mat.
     cv_bridge::CvImageConstPtr cv_ptr;
-    // RCLCPP_INFO(this->get_logger(), "Get images");
-
 
     try
     {
@@ -184,8 +176,6 @@ cv::Mat StereoInertialNode::GetImage(const ImageMsg::SharedPtr msg)
 void StereoInertialNode::SyncWithImu()
 {
     const double maxTimeDiff = 0.01;
-    Sophus::SE3f SE3;
-    // RCLCPP_INFO(this->get_logger(), "Sync IMU");
 
     while (1)
     {
@@ -259,33 +249,9 @@ void StereoInertialNode::SyncWithImu()
                 cv::remap(imLeft, imLeft, M1l_, M2l_, cv::INTER_LINEAR);
                 cv::remap(imRight, imRight, M1r_, M2r_, cv::INTER_LINEAR);
             }
-            //RCLCPP_INFO(this->get_logger(), "Timestamp size: %d", tImLeft.size());
             SE3 = m_SLAM->TrackStereo(imLeft, imRight, tImLeft, vImuMeas);
-            //RCLCPP_INFO(this->get_logger(), "Size imu: %d", vImuMeas.size());
-            // StereoInertialNode::Transform_orbslam2cam(SE3.translation(), SE3.unit_quaternion());
-            // ROS Transform message initialization
-            auto sendmsg = geometry_msgs::msg::TransformStamped();
-
-            sendmsg.header.stamp = this->get_clock()->now();
-            sendmsg.header.frame_id = "orbslam3";
-            sendmsg.child_frame_id = "left_camera_link";
-
-            // Set translation
-            sendmsg.transform.translation.x = SE3.params()(4);
-            sendmsg.transform.translation.y = SE3.params()(5);
-            sendmsg.transform.translation.z = SE3.params()(6);
-
-            // Set rotation
-            sendmsg.transform.rotation.x = SE3.params()(0);
-            sendmsg.transform.rotation.y = SE3.params()(1);
-            sendmsg.transform.rotation.z = SE3.params()(2);
-            sendmsg.transform.rotation.w = SE3.params()(3);
-
-            // Publish the transform message
-            tf_publisher->publish(sendmsg);
-            PublishTrackedPointCloud();
-            PublishPose(SE3);
-            PublishPath();
+            
+            Update();
             std::chrono::milliseconds tSleep(1);
             std::this_thread::sleep_for(tSleep);
         }

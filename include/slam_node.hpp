@@ -2,6 +2,8 @@
 #define __SLAM_NODE_HPP__
 
 #include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/string.hpp"
+#include "std_msgs/msg/bool.hpp"
 #include "sensor_msgs/msg/image.hpp"
 
 #include "sensor_msgs/msg/point_cloud2.hpp"
@@ -36,10 +38,12 @@ public:
     SlamNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node);
 
     ~SlamNode();
+    void Update();
     void PublishCurrentPointCloud();
     void PublishTrackedPointCloud();
     void PublishPath();
-    void PublishPose(Sophus::SE3f &pose);
+    void PublishPose();
+    void PublishTransform();
     tf2::Transform TransformFromSophus(Sophus::SE3f &pose);
 
     rclcpp::Node* node_;
@@ -55,12 +59,11 @@ protected:
     rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr tf_publisher;
 
 private:
-       
-
-    
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr posepublisher;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pclpublisher;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pathpublisher;
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr statepublisher;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr flagpublisher;
 
 };
 
