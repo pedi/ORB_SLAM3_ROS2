@@ -66,5 +66,5 @@ void MonocularSlamNode::GrabImage(const ImageMsg::SharedPtr msg)
     }
 
     std::cout<<"one frame has been sent"<<std::endl;
-    pose = m_SLAM->TrackMonocular(m_cvImPtr->image, Utility::StampToSec(msg->header.stamp));
+    SE3 = m_SLAM->TrackMonocular(m_cvImPtr->image, Utility::StampToSec(msg->header.stamp));
 }

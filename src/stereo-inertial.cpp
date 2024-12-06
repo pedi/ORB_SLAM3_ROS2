@@ -259,8 +259,9 @@ void StereoInertialNode::SyncWithImu()
                 cv::remap(imLeft, imLeft, M1l_, M2l_, cv::INTER_LINEAR);
                 cv::remap(imRight, imRight, M1r_, M2r_, cv::INTER_LINEAR);
             }
-            RCLCPP_INFO(this->get_logger(), "Size imu: %d", vImuMeas.size());
-            SLAM_->TrackStereo(imLeft, imRight, tImLeft, vImuMeas);
+            //RCLCPP_INFO(this->get_logger(), "Timestamp size: %d", tImLeft.size());
+            SE3 = m_SLAM->TrackStereo(imLeft, imRight, tImLeft, vImuMeas);
+            //RCLCPP_INFO(this->get_logger(), "Size imu: %d", vImuMeas.size());
             // StereoInertialNode::Transform_orbslam2cam(SE3.translation(), SE3.unit_quaternion());
             // ROS Transform message initialization
             auto sendmsg = geometry_msgs::msg::TransformStamped();

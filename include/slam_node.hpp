@@ -50,7 +50,7 @@ protected:
     ORB_SLAM3::System* m_SLAM;
     std::vector<ORB_SLAM3::KeyFrame*> trajectory;
     std::vector<ORB_SLAM3::MapPoint*> map_points;
-    Sophus::SE3f pose;
+    Sophus::SE3f SE3;
     rclcpp::Time current_frame_time_;
     rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr tf_publisher;
 
