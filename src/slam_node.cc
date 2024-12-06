@@ -7,11 +7,49 @@ SlamNode::SlamNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node)
     pclpublisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("pointcloud", 10);
     pathpublisher = this->create_publisher<nav_msgs::msg::Path>("path", 10);
     posepublisher = this->create_publisher<geometry_msgs::msg::PoseStamped>("pose", 10);
+    statepublisher = this->create_publisher<std_msgs::msg::String>("state", 10);
 }
 SlamNode::~SlamNode() {
     // Para todas as threads
     m_SLAM->Shutdown();
 }
+void SlamNode::Update(){
+    int state_num = m_SLAM->GetTrackingState();
+    
+    auto statemsg = std_msgs::msg::String();
+    switch (state_num)
+    {
+    case -1:
+        statemsg.data = "SYSTEM_NOT_READY";
+        break;
+    case 0:
+        statemsg.data = "NO_IMAGES_YET";
+        break;
+    case 1:
+        statemsg.data = "NOT_INITIALIZED";
+        break;
+    case 2:
+        statemsg.data = "OK";
+        break;
+    case 3:
+        statemsg.data = "RECENTLY_LOST";
+        break;
+    case 4:
+        statemsg.data = "LOST";
+        break;
+    case 5:
+        statemsg.data = "OK_KLT";
+        break;
+    }
+    
+    statepublisher->publish(statemsg);
+    PublishTransform();
+    PublishTrackedPointCloud();
+    PublishPose();
+    PublishPath();
+}
+
+
 void SlamNode::PublishTrackedPointCloud(){
     std::vector<int> indexes;
     std::vector<ORB_SLAM3::MapPoint*> points = m_SLAM->GetAllMapPoints();
@@ -145,23 +183,14 @@ void SlamNode::PublishPath(){
         tf2::Transform grasp_tf = TransformFromSophus(SE3);
         tf2::toMsg(grasp_tf, pose.pose);
 
-        // pose.pose.position.x = SE3.params()(4);
-        // pose.pose.position.y = SE3.params()(5);
-        // pose.pose.position.z = SE3.params()(6);
-        //
-        // pose.pose.orientation.x = SE3.params()(0);
-        // pose.pose.orientation.y = SE3.params()(1);
-        // pose.pose.orientation.z = SE3.params()(2);
-        // pose.pose.orientation.w = SE3.params()(3);
-
         path_msg.poses.push_back(pose);
 
     }
     pathpublisher->publish(path_msg);
     
 }
-void SlamNode::PublishPose(Sophus::SE3f &pose) {
-    tf2::Transform grasp_tf = TransformFromSophus(pose);
+void SlamNode::PublishPose() {
+    tf2::Transform grasp_tf = TransformFromSophus(SE3);
     auto pose_msg = geometry_msgs::msg::PoseStamped();
 
     pose_msg.header.stamp = current_frame_time_;
@@ -172,6 +201,24 @@ void SlamNode::PublishPose(Sophus::SE3f &pose) {
 
 }
 
+void SlamNode::PublishTransform(){
+    auto sendmsg = geometry_msgs::msg::TransformStamped();
+    sendmsg.header.stamp = current_frame_time_;
+    sendmsg.header.frame_id = "orbslam3";
+    sendmsg.child_frame_id = "left_camera_link";
+
+    sendmsg.transform.translation.x = SE3.params()(4);
+    sendmsg.transform.translation.y = SE3.params()(5);
+    sendmsg.transform.translation.z = SE3.params()(6);
+
+    sendmsg.transform.rotation.x = SE3.params()(0);
+    sendmsg.transform.rotation.y = SE3.params()(1);
+    sendmsg.transform.rotation.z = SE3.params()(2);
+    sendmsg.transform.rotation.w = SE3.params()(3);
+
+    tf_publisher->publish(sendmsg);
+}
+
 tf2::Transform SlamNode::TransformFromSophus(Sophus::SE3f &pose)
 {
     // Convert pose to double precision for tf2 compatibility
@@ -179,15 +226,15 @@ tf2::Transform SlamNode::TransformFromSophus(Sophus::SE3f &pose)
     Eigen::Vector3d translation = pose.translation().cast<double>();
 
     // Debug original rotation and translation from ORB-SLAM
-    RCLCPP_INFO(this->get_logger(), "Original Rotation Matrix (ORB):\n"
-                                    "[%f, %f, %f]\n"
-                                    "[%f, %f, %f]\n"
-                                    "[%f, %f, %f]",
-                rotation(0, 0), rotation(0, 1), rotation(0, 2),
-                rotation(1, 0), rotation(1, 1), rotation(1, 2),
-                rotation(2, 0), rotation(2, 1), rotation(2, 2));
-    RCLCPP_INFO(this->get_logger(), "Original Translation Vector (ORB): [%f, %f, %f]",
-                translation(0), translation(1), translation(2));
+    // RCLCPP_INFO(this->get_logger(), "Original Rotation Matrix (ORB):\n"
+    //                                 "[%f, %f, %f]\n"
+    //                                 "[%f, %f, %f]\n"
+    //                                 "[%f, %f, %f]",
+    //             rotation(0, 0), rotation(0, 1), rotation(0, 2),
+    //             rotation(1, 0), rotation(1, 1), rotation(1, 2),
+    //             rotation(2, 0), rotation(2, 1), rotation(2, 2));
+    // RCLCPP_INFO(this->get_logger(), "Original Translation Vector (ORB): [%f, %f, %f]",
+    //             translation(0), translation(1), translation(2));
 
     // Convert Eigen data to tf2
     tf2::Matrix3x3 tf_camera_rotation(
@@ -222,15 +269,15 @@ tf2::Transform SlamNode::TransformFromSophus(Sophus::SE3f &pose)
     tf_camera_translation = tf_orb_to_ros * tf_camera_translation;
 
     // Debug transformed rotation and translation
-    RCLCPP_INFO(this->get_logger(), "Transformed Rotation Matrix (ROS):\n"
-                                    "[%f, %f, %f]\n"
-                                    "[%f, %f, %f]\n"
-                                    "[%f, %f, %f]",
-                tf_camera_rotation.getRow(0).x(), tf_camera_rotation.getRow(0).y(), tf_camera_rotation.getRow(0).z(),
-                tf_camera_rotation.getRow(1).x(), tf_camera_rotation.getRow(1).y(), tf_camera_rotation.getRow(1).z(),
-                tf_camera_rotation.getRow(2).x(), tf_camera_rotation.getRow(2).y(), tf_camera_rotation.getRow(2).z());
-    RCLCPP_INFO(this->get_logger(), "Transformed Translation Vector (ROS): [%f, %f, %f]",
-                tf_camera_translation.x(), tf_camera_translation.y(), tf_camera_translation.z());
+    // RCLCPP_INFO(this->get_logger(), "Transformed Rotation Matrix (ROS):\n"
+    //                                 "[%f, %f, %f]\n"
+    //                                 "[%f, %f, %f]\n"
+    //                                 "[%f, %f, %f]",
+    //             tf_camera_rotation.getRow(0).x(), tf_camera_rotation.getRow(0).y(), tf_camera_rotation.getRow(0).z(),
+    //             tf_camera_rotation.getRow(1).x(), tf_camera_rotation.getRow(1).y(), tf_camera_rotation.getRow(1).z(),
+    //             tf_camera_rotation.getRow(2).x(), tf_camera_rotation.getRow(2).y(), tf_camera_rotation.getRow(2).z());
+    // RCLCPP_INFO(this->get_logger(), "Transformed Translation Vector (ROS): [%f, %f, %f]",
+    //             tf_camera_translation.x(), tf_camera_translation.y(), tf_camera_translation.z());
 
     // Return the final tf2::Transform
     return tf2::Transform(tf_camera_rotation, tf_camera_translation);
