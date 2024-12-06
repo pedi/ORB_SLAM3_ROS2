@@ -17,6 +17,11 @@ def generate_launch_description():
             description='Path to the ORB_SLAM3 vocabulary file'
         ),
         DeclareLaunchArgument(
+            'pangolin',
+            default_value="True",
+            description='Use the viewer'
+        ),
+        DeclareLaunchArgument(
             'yaml_file',
             default_value='sm2_stereosim.yaml',
             description='Name of the ORB_SLAM3 YAML configuration file'
@@ -36,7 +41,8 @@ def generate_launch_description():
                     'stereo',
                     LaunchConfiguration('yaml_file')
                 ]),
-                'False'
+                'False',
+                LaunchConfiguration('pangolin')
             ],
             remappings=[
                 ('camera/left', '/stereo_left'),

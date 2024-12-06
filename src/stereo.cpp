@@ -2,6 +2,7 @@
 #include<algorithm>
 #include<fstream>
 #include<chrono>
+#include <string> 
 
 #include "rclcpp/rclcpp.hpp"
 #include "stereo-slam-node.hpp"
@@ -9,6 +10,7 @@
 #include <opencv2/core/core.hpp>
 
 #include "System.h"
+
 
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -23,8 +25,8 @@ int main(int argc, char **argv)
     }
     auto node = std::make_shared<rclcpp::Node>("run_slam");
 
-
-    bool visualization = true;
+    
+    bool visualization = strcmp(argv[4],"True") == 0;
     ORB_SLAM3::System pSLAM(argv[1], argv[2], ORB_SLAM3::System::STEREO, visualization);
 
     std::shared_ptr<StereoSlamNode> slam_ros;
