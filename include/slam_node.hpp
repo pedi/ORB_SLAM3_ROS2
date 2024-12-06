@@ -3,6 +3,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
+#include "std_msgs/msg/bool.hpp"
 #include "sensor_msgs/msg/image.hpp"
 
 #include "sensor_msgs/msg/point_cloud2.hpp"
@@ -62,6 +63,7 @@ private:
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pclpublisher;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pathpublisher;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr statepublisher;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr flagpublisher;
 
 };
 

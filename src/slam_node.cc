@@ -8,6 +8,7 @@ SlamNode::SlamNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node)
     pathpublisher = this->create_publisher<nav_msgs::msg::Path>("path", 10);
     posepublisher = this->create_publisher<geometry_msgs::msg::PoseStamped>("pose", 10);
     statepublisher = this->create_publisher<std_msgs::msg::String>("state", 10);
+    flagpublisher = this->create_publisher<std_msgs::msg::Bool>("flag", 10);
 }
 SlamNode::~SlamNode() {
     // Para todas as threads
@@ -42,6 +43,10 @@ void SlamNode::Update(){
         break;
     }
     
+    auto flagmsg = std_msgs::msg::Bool();
+    flagmsg.data = m_SLAM->MapChanged();
+
+    flagpublisher->publish(flagmsg);
     statepublisher->publish(statemsg);
     PublishTransform();
     PublishTrackedPointCloud();
