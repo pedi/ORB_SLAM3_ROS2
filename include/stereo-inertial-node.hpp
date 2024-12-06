@@ -19,17 +19,18 @@
 #include "Tracking.h"
 
 #include "utility.hpp"
+#include "slam_node.hpp"
 
-using ImuMsg = sensor_msgs::msg::Imu;
-using ImageMsg = sensor_msgs::msg::Image;
+// using ImageMsg = sensor_msgs::msg::Image;
 
-class StereoInertialNode : public rclcpp::Node
+class StereoInertialNode : public SlamNode
 {
 public:
-    StereoInertialNode(ORB_SLAM3::System* pSLAM, const string &strSettingsFile, const string &strDoRectify, const string &strDoEqual);
+    StereoInertialNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node, const std::string &strSettingsFile, const std::string &strDoRectify , const std::string &strDoEqual);
     ~StereoInertialNode();
 
 private:
+    using ImuMsg = sensor_msgs::msg::Imu;
     void GrabImu(const ImuMsg::SharedPtr msg);
     void GrabImageLeft(const ImageMsg::SharedPtr msgLeft);
     void GrabImageRight(const ImageMsg::SharedPtr msgRight);
@@ -38,9 +39,9 @@ private:
     void PublishPointCloud(std::vector<ORB_SLAM3::MapPoint*> points);
     void Transform_orbslam2cam(const Eigen::Vector3f translation, const Eigen::Quaternionf rotation);
 
-    rclcpp::Subscription<ImuMsg>::SharedPtr   subImu_;
-    rclcpp::Subscription<ImageMsg>::SharedPtr subImgLeft_;
-    rclcpp::Subscription<ImageMsg>::SharedPtr subImgRight_;
+    rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr   subImu_;
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subImgLeft_;
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subImgRight_;
 
     // Publisher for transform and PCL2
     rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr tf_publisher;

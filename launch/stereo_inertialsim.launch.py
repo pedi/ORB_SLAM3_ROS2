@@ -25,7 +25,7 @@ def generate_launch_description():
             package='orbslam3_ros2',
             executable='stereo-inertial',
             name='stereo_inertial_orbslam3',
-            namespace='orbslam3_intertial',
+            namespace='orbslam3_inertial',
             output='screen',
             arguments=[
                 LaunchConfiguration('vocabulary'),

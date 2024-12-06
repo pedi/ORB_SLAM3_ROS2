@@ -1,5 +1,5 @@
-#ifndef __STEREO_SLAM_NODE_HPP__
-#define __STEREO_SLAM_NODE_HPP__
+#ifndef __SLAM_NODE_HPP__
+#define __SLAM_NODE_HPP__
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
@@ -30,12 +30,12 @@
 #include "Tracking.h"
 #include "utility.hpp"
 
-class StereoSlamNode : public rclcpp::Node
+class SlamNode : public rclcpp::Node
 {
 public:
-    StereoSlamNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node, const std::string &strSettingsFile, const std::string &strDoRectify);
+    SlamNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node);
 
-    ~StereoSlamNode();
+    ~SlamNode();
     void PublishCurrentPointCloud();
     void PublishTrackedPointCloud();
     void PublishPath();
@@ -44,28 +44,20 @@ public:
 
     rclcpp::Node* node_;
 
-private:
+protected:
     using ImageMsg = sensor_msgs::msg::Image;
-    using approximate_sync_policy = message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, sensor_msgs::msg::Image>;
-
-    void GrabStereo(const ImageMsg::SharedPtr msgLeft, const ImageMsg::SharedPtr msgRight);
 
     ORB_SLAM3::System* m_SLAM;
-
+    std::vector<ORB_SLAM3::KeyFrame*> trajectory;
+    std::vector<ORB_SLAM3::MapPoint*> map_points;
+    Sophus::SE3f SE3;
     rclcpp::Time current_frame_time_;
-
-    bool doRectify;
-    cv::Mat M1l, M2l, M1r, M2r;
-
-    cv_bridge::CvImageConstPtr cv_ptrLeft;
-    cv_bridge::CvImageConstPtr cv_ptrRight;
-
-    std::shared_ptr<message_filters::Subscriber<ImageMsg>> left_sub;
-    std::shared_ptr<message_filters::Subscriber<ImageMsg>> right_sub;
-
-    std::shared_ptr<message_filters::Synchronizer<approximate_sync_policy>> syncApproximate;
-
     rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr tf_publisher;
+
+private:
+       
+
+    
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr posepublisher;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pclpublisher;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pathpublisher;
