@@ -16,15 +16,26 @@ def generate_launch_description():
             description='Path to the ORB_SLAM3 vocabulary file'
         ),
         DeclareLaunchArgument(
+            'pangolin',
+            default_value="True",
+            description='Use the viewer'
+        ),
+        DeclareLaunchArgument(
             'yaml_file',
             default_value='sm2_stereo.yaml',
             description='Name of the ORB_SLAM3 YAML configuration file'
+        ),
+        DeclareLaunchArgument(
+            'namespace',
+            default_value='SM2',
+            description='Namespace of system'
         ),
         
         Node(
             package='orbslam3_ros2',
             executable='stereo',
             name='stereo_orbslam3',
+            namespace=LaunchConfiguration('namespace'),
             output='screen',
             arguments=[
                 LaunchConfiguration('vocabulary'),
@@ -34,11 +45,12 @@ def generate_launch_description():
                     'stereo',
                     LaunchConfiguration('yaml_file')
                 ]),
-                'False'
+                'False',
+                LaunchConfiguration('pangolin')
             ],
             remappings=[
-                ('camera/left', '/SM2/left/image_raw'),
-                ('camera/right', '/SM2/left/image_raw')
+                ('camera/left', 'left/image_raw'),
+                ('camera/right', 'right/image_raw')
             ]
         )
     ])
