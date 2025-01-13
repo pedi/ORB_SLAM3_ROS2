@@ -3,7 +3,7 @@ from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
 from launch.actions import DeclareLaunchArgument
-from launch.actions import ExecuteProcess
+from launch.actions import ExecuteProcess, TimerAction
 
 def generate_launch_description():
     return LaunchDescription([
@@ -68,15 +68,18 @@ def generate_launch_description():
                     '--child-frame-id', 'orbslam3'],
             output='screen',
         ),
-        ExecuteProcess(
-            cmd=['/opt/ros/humble/lib/tf2_ros/static_transform_publisher',
-                    '--yaw', '-1.570796327',
-                    '--roll', '-1.5707963270',
-                    '--pitch', '0',
-                    '--frame-id', 'orbslam3',
-                    '--child-frame-id', 'down'],
-            output='screen',
-        ),
+        TimerAction(
+            actions=[ExecuteProcess(
+                cmd=['/opt/ros/humble/lib/tf2_ros/static_transform_publisher',
+                     '--yaw', '-1.570796327',
+                     '--roll', '-1.5707963270',
+                     '--pitch', '0',
+                     '--frame-id', 'left_camera_link',
+                     '--child-frame-id', 'left_camera_frame'],
+                output='screen'
+            )],
+            period='1'
+        )
 
 
     
