@@ -8,6 +8,10 @@ from launch.actions import ExecuteProcess, TimerAction
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
+            'namespace',
+            default_value=['orbslam3']
+        ),
+        DeclareLaunchArgument(
             'vocabulary',
             default_value=PathJoinSubstitution([
                 FindPackageShare('orbslam3_ros2'),
@@ -32,7 +36,7 @@ def generate_launch_description():
             executable='stereo',
             name='stereo_orbslam3',
             output='screen',
-            namespace='orbslam3',
+            namespace=LaunchConfiguration('namespace'),
             arguments=[
                 LaunchConfiguration('vocabulary'),
                 PathJoinSubstitution([
