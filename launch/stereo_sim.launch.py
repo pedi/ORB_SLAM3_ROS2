@@ -30,7 +30,10 @@ def generate_launch_description():
             default_value='sm2_stereosim.yaml',
             description='Name of the ORB_SLAM3 YAML configuration file'
         ),
-        
+        DeclareLaunchArgument(
+            'namespace',
+            default_value=['orbslam3']
+        ),
         Node(
             package='orbslam3_ros2',
             executable='stereo',
