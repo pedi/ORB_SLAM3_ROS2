@@ -34,6 +34,15 @@ def generate_launch_description():
             'namespace',
             default_value=['orbslam3']
         ),
+        DeclareLaunchArgument(
+            'frame_id',
+            default_value=['orbslam3']
+        ),
+        DeclareLaunchArgument(
+            'child_frame_id',
+            default_value=['left_camera_link']
+        )
+
         Node(
             package='orbslam3_ros2',
             executable='stereo',
@@ -55,6 +64,7 @@ def generate_launch_description():
                 ('camera/left', '/stereo_left'),
                 ('camera/right', '/stereo_right')
             ]
+            parameters = [{'frame_id':LaunchConfiguration('frame_id'), 'child_frame_id':LaunchConfiguration('child_frame_id')}]
         ),
         # ExecuteProcess(
         #     cmd=['/opt/ros/humble/lib/tf2_ros/static_transform_publisher',
