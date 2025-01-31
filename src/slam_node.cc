@@ -135,7 +135,7 @@ void SlamNode::PublishCurrentPointCloud(){
     }
     
     pointcloudmsg.header.stamp = current_frame_time_;
-    pointcloudmsg.header.frame_id = this->get_parameter("frame_id").as_string();;
+    pointcloudmsg.header.frame_id = this->get_parameter("frame_id").as_string();
     pointcloudmsg.height = 1;
     pointcloudmsg.width = count;
     pointcloudmsg.is_dense = true;
