@@ -8,6 +8,10 @@ from launch.actions import ExecuteProcess, TimerAction
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
+            'namespace',
+            default_value=['orbslam3']
+        ),
+        DeclareLaunchArgument(
             'vocabulary',
             default_value=PathJoinSubstitution([
                 FindPackageShare('orbslam3_ros2'),
@@ -26,13 +30,25 @@ def generate_launch_description():
             default_value='sm2_stereosim.yaml',
             description='Name of the ORB_SLAM3 YAML configuration file'
         ),
-        
+        DeclareLaunchArgument(
+            'namespace',
+            default_value=['orbslam3']
+        ),
+        DeclareLaunchArgument(
+            'frame_id',
+            default_value=['orbslam3']
+        ),
+        DeclareLaunchArgument(
+            'child_frame_id',
+            default_value=['left_camera_link']
+        )
+
         Node(
             package='orbslam3_ros2',
             executable='stereo',
             name='stereo_orbslam3',
             output='screen',
-            namespace='orbslam3',
+            namespace=LaunchConfiguration('namespace'),
             arguments=[
                 LaunchConfiguration('vocabulary'),
                 PathJoinSubstitution([
@@ -48,6 +64,7 @@ def generate_launch_description():
                 ('camera/left', '/stereo_left'),
                 ('camera/right', '/stereo_right')
             ]
+            parameters = [{'frame_id':LaunchConfiguration('frame_id'), 'child_frame_id':LaunchConfiguration('child_frame_id')}]
         ),
         # ExecuteProcess(
         #     cmd=['/opt/ros/humble/lib/tf2_ros/static_transform_publisher',

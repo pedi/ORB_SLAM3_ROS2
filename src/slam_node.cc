@@ -9,6 +9,10 @@ SlamNode::SlamNode(ORB_SLAM3::System* pSLAM, rclcpp::Node* node)
     posepublisher = this->create_publisher<geometry_msgs::msg::PoseStamped>("pose", 10);
     statepublisher = this->create_publisher<std_msgs::msg::String>("state", 10);
     flagpublisher = this->create_publisher<std_msgs::msg::Bool>("flag", 10);
+
+    this->declare_parameter("frame_id", "orbslam3");
+    this->declare_parameter("child_frame_id", "left_camera_link");
+
 }
 SlamNode::~SlamNode() {
     // Para todas as threads
@@ -131,7 +135,7 @@ void SlamNode::PublishCurrentPointCloud(){
     }
     
     pointcloudmsg.header.stamp = current_frame_time_;
-    pointcloudmsg.header.frame_id = "orbslam3";
+    pointcloudmsg.header.frame_id = this->get_parameter("frame_id").as_string();
     pointcloudmsg.height = 1;
     pointcloudmsg.width = count;
     pointcloudmsg.is_dense = true;
@@ -175,14 +179,14 @@ void SlamNode::PublishPath(){
     auto path_msg = nav_msgs::msg::Path();
 
     path_msg.header.stamp = this->get_clock()->now();
-    path_msg.header.frame_id = "orbslam3";
+    path_msg.header.frame_id = this->get_parameter("frame_id").as_string();;
 
     for (size_t i = 0; i < trajectory.size(); i++)
     {
         geometry_msgs::msg::PoseStamped pose;
         Sophus::SE3f SE3 =  trajectory[i]->GetPose();
         pose.header.stamp = current_frame_time_;
-        pose.header.frame_id = "orbslam3";
+        pose.header.frame_id = this->get_parameter("frame_id").as_string();;
 
         // Transform to ROS coordinates
         tf2::Transform grasp_tf = TransformFromSophus(SE3);
@@ -199,7 +203,7 @@ void SlamNode::PublishPose() {
     auto pose_msg = geometry_msgs::msg::PoseStamped();
 
     pose_msg.header.stamp = current_frame_time_;
-    pose_msg.header.frame_id = "orbslam3";
+    pose_msg.header.frame_id = this->get_parameter("frame_id").as_string();;
     tf2::toMsg(grasp_tf, pose_msg.pose);
 
     posepublisher->publish(pose_msg);
@@ -211,8 +215,8 @@ void SlamNode::PublishTransform(){
     tf2::Transform grasp_tf = TransformFromSophus(SE3);
 
     sendmsg.header.stamp = current_frame_time_;
-    sendmsg.header.frame_id = "orbslam3";
-    sendmsg.child_frame_id = "left_camera_link";
+    sendmsg.header.frame_id = this->get_parameter("frame_id").as_string();;
+    sendmsg.child_frame_id = this->get_parameter("child_frame_id").as_string();;
     tf2::toMsg(grasp_tf, sendmsg.transform);
 
     tf_publisher->publish(sendmsg);
