@@ -106,9 +106,9 @@ void SlamNode::PublishTrackedPointCloud(){
 
     for (size_t i = 0; i < count; i++)
     {
-        float x = points[indexes[i]]->GetWorldPos()(0);
-        float y = points[indexes[i]]->GetWorldPos()(1);
-        float z = points[indexes[i]]->GetWorldPos()(2);
+        float x = points[indexes[i]]->GetWorldPos()(2);
+        float y = -1.0 * points[indexes[i]]->GetWorldPos()(0);
+        float z = -1.0 * points[indexes[i]]->GetWorldPos()(1);
 
         memcpy(&pointcloudmsg.data[i*12], &x, 4);
         memcpy(&pointcloudmsg.data[i*12 + 4], &y, 4);
@@ -164,9 +164,9 @@ void SlamNode::PublishCurrentPointCloud(){
 
     for (size_t i = 0; i < count; i++)
     {
-        float x = points[indexes[i]]->GetWorldPos()(0);
-        float y = points[indexes[i]]->GetWorldPos()(1);
-        float z = points[indexes[i]]->GetWorldPos()(2);
+        float x = points[indexes[i]]->GetWorldPos()(2);
+        float y = -1.0 * points[indexes[i]]->GetWorldPos()(0);
+        float z = -1.0 * points[indexes[i]]->GetWorldPos()(1);
 
         memcpy(&pointcloudmsg.data[i*12], &x, 4);
         memcpy(&pointcloudmsg.data[i*12 + 4], &y, 4);
@@ -222,66 +222,35 @@ void SlamNode::PublishTransform(){
     tf_publisher->publish(sendmsg);
 }
 
-tf2::Transform SlamNode::TransformFromSophus(Sophus::SE3f &pose)
+tf2::Transform SlamNode::TransformFromSophus(Sophus::SE3f &se3)
 {
-    // Convert pose to double precision for tf2 compatibility
-    Eigen::Matrix3d rotation = pose.rotationMatrix().cast<double>();
-    Eigen::Vector3d translation = pose.translation().cast<double>();
+  cv::Mat rotation(3,3,CV_32F);
+  cv::Mat translation(3,1,CV_32F);
 
-    // Debug original rotation and translation from ORB-SLAM
-    // RCLCPP_INFO(this->get_logger(), "Original Rotation Matrix (ORB):\n"
-    //                                 "[%f, %f, %f]\n"
-    //                                 "[%f, %f, %f]\n"
-    //                                 "[%f, %f, %f]",
-    //             rotation(0, 0), rotation(0, 1), rotation(0, 2),
-    //             rotation(1, 0), rotation(1, 1), rotation(1, 2),
-    //             rotation(2, 0), rotation(2, 1), rotation(2, 2));
-    // RCLCPP_INFO(this->get_logger(), "Original Translation Vector (ORB): [%f, %f, %f]",
-    //             translation(0), translation(1), translation(2));
+  Eigen::Matrix4f transformation_matrix = se3.matrix();
+  tf2::Matrix3x3 tf_camera_rotation (transformation_matrix(0,0), transformation_matrix(0,1), transformation_matrix(0,2),
+                                    transformation_matrix(1,0), transformation_matrix(1,1), transformation_matrix(1,2),
+                                    transformation_matrix(2,0), transformation_matrix(2,1), transformation_matrix(2,2)
+                                   );
 
-    // Convert Eigen data to tf2
-    tf2::Matrix3x3 tf_camera_rotation(
-        rotation(0, 0), rotation(0, 1), rotation(0, 2),
-        rotation(1, 0), rotation(1, 1), rotation(1, 2),
-        rotation(2, 0), rotation(2, 1), rotation(2, 2));
-    tf2::Vector3 tf_camera_translation(
-        translation(0), translation(1), translation(2));
+  tf2::Vector3 tf_camera_translation (se3.translation().x(), se3.translation().y(), se3.translation().z());
 
-    // Coordinate transformation matrix: ORB to ROS
-    static const tf2::Matrix3x3 tf_orb_to_ros(
-        0, 0, 1,  // ORB Z -> ROS X
-        -1, 0, 0, // ORB X -> ROS Y
-        0, -1, 0  // ORB Y -> ROS Z
-    );    // Coordinate transformation matrix: ORB to ROS
-    // static const tf2::Matrix3x3 tf_orb_to_ros(
-    //     1, 0, 0,  // ORB Z -> ROS X
-    //     0, 1, 0, // ORB X -> ROS Y
-    //     0, 0, 1  // ORB Y -> ROS Z
-    // );
+  //Coordinate transformation matrix from orb coordinate system to ros coordinate system
+  const tf2::Matrix3x3 tf_orb_to_ros (0, 0, 1,
+                                    -1, 0, 0,
+                                     0,-1, 0);
 
-    // Transform from orb coordinate system to ros coordinate system on camera coordinates
-    tf_camera_rotation = tf_orb_to_ros * tf_camera_rotation;
-    tf_camera_translation = tf_orb_to_ros * tf_camera_translation;
+  //Transform from orb coordinate system to ros coordinate system on camera coordinates
+  tf_camera_rotation = tf_orb_to_ros*tf_camera_rotation;
+  tf_camera_translation = tf_orb_to_ros*tf_camera_translation;
 
-    // Inverse matrix
-    tf_camera_rotation = tf_camera_rotation.transpose();
-    tf_camera_translation = -(tf_camera_rotation * tf_camera_translation);
+  //Inverse matrix
+  tf_camera_rotation = tf_camera_rotation.transpose();
+  tf_camera_translation = -(tf_camera_rotation*tf_camera_translation);
 
-    // Transform from orb coordinate system to ros coordinate system on map coordinates
-    tf_camera_rotation = tf_orb_to_ros * tf_camera_rotation;
-    tf_camera_translation = tf_orb_to_ros * tf_camera_translation;
+  //Transform from orb coordinate system to ros coordinate system on map coordinates
+  tf_camera_rotation = tf_orb_to_ros*tf_camera_rotation;
+  tf_camera_translation = tf_orb_to_ros*tf_camera_translation;
 
-    // Debug transformed rotation and translation
-    // RCLCPP_INFO(this->get_logger(), "Transformed Rotation Matrix (ROS):\n"
-    //                                 "[%f, %f, %f]\n"
-    //                                 "[%f, %f, %f]\n"
-    //                                 "[%f, %f, %f]",
-    //             tf_camera_rotation.getRow(0).x(), tf_camera_rotation.getRow(0).y(), tf_camera_rotation.getRow(0).z(),
-    //             tf_camera_rotation.getRow(1).x(), tf_camera_rotation.getRow(1).y(), tf_camera_rotation.getRow(1).z(),
-    //             tf_camera_rotation.getRow(2).x(), tf_camera_rotation.getRow(2).y(), tf_camera_rotation.getRow(2).z());
-    // RCLCPP_INFO(this->get_logger(), "Transformed Translation Vector (ROS): [%f, %f, %f]",
-    //             tf_camera_translation.x(), tf_camera_translation.y(), tf_camera_translation.z());
-
-    // Return the final tf2::Transform
-    return tf2::Transform(tf_camera_rotation, tf_camera_translation);
+  return tf2::Transform (tf_camera_rotation, tf_camera_translation);
 }

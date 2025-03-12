@@ -36,7 +36,7 @@ def generate_launch_description():
                 ])
             ],
             remappings=[
-                ('camera', '/SM2/left/image_raw')
+                ('camera', '/camera')
             ]
         )
     ])

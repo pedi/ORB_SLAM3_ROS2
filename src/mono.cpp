@@ -19,9 +19,9 @@ int main(int argc, char **argv)
         std::cerr << "\nUsage: ros2 run orbslam mono path_to_vocabulary path_to_settings" << std::endl;
         return 1;
     }
-    auto node = std::make_shared<rclcpp::Node>("run_slam");
     rclcpp::init(argc, argv);
 
+    auto node = std::make_shared<rclcpp::Node>("run_slam");
     // malloc error using new.. try shared ptr
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     bool visualization = true;
